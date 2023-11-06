@@ -1,0 +1,65 @@
+id: template_chat_flow
+name: Template Chat Flow
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  chat_history:
+    type: list
+    is_chat_history: true
+  question:
+    type: string
+    is_chat_input: true
+outputs:
+  answer:
+    type: string
+    reference: ${ask_llm.output}
+    is_chat_output: true
+nodes:
+- name: create_embedding
+  type: python
+  source:
+    type: package
+    tool: promptflow.tools.embedding.embedding
+  inputs:
+    connection: AzOAIGPT35Turbo
+    input: ${inputs.question}
+    deployment_name: textembeddingada002
+- name: lookup_chunks_in_vector_db
+  type: python
+  source:
+    type: package
+    tool: promptflow_vectordb.tool.vector_db_lookup.VectorDBLookup.search
+  inputs:
+    connection: cog-search-demo-app
+    top_k: 3
+    vector: ${create_embedding.output}
+    index_name: gptkbindex
+    text_field: content
+    vector_field: embedding
+  use_variants: false
+- name: generate_prompt_context
+  type: python
+  source:
+    type: code
+    path: generate_prompt_context.py
+  inputs:
+    search_result: ${lookup_chunks_in_vector_db.output}
+- name: generate_final_prompt
+  type: prompt
+  source:
+    type: code
+    path: generate_final_prompt.jinja2
+  inputs:
+    question: ${inputs.question}
+    contexts: ${generate_prompt_context.output}
+- name: ask_llm
+  type: llm
+  source:
+    type: code
+    path: ask_llm.jinja2
+  inputs:
+    chat_history: ${inputs.chat_history}
+    final_prompt_text: ${generate_final_prompt.output}
+    deployment_name: xstof-gpt4
+  connection: xstof-gpt4
+  api: chat

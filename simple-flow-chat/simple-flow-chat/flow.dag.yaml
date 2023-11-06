@@ -1,0 +1,29 @@
+inputs:
+  chat_input:
+    type: string
+    default: name 3 objects that are blue
+    is_chat_input: true
+    is_chat_history: false
+  chat_history:
+    type: list
+    default: []
+    is_chat_input: false
+    is_chat_history: true
+outputs:
+  answer:
+    type: string
+    is_chat_output: true
+    reference: ${get_response_from_llm.output}
+nodes:
+- name: get_response_from_llm
+  type: llm
+  source:
+    type: code
+    path: get_response_from_llm.jinja2
+  inputs:
+    deployment_name: xstof-gpt4
+    chat_history: ${inputs.chat_history}
+    question: ${inputs.chat_input}
+    temperature: 2
+  connection: xstof-gpt4
+  api: chat

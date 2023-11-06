@@ -1,0 +1,19 @@
+inputs:
+  colour:
+    type: string
+    default: blue
+outputs:
+  output:
+    type: string
+    reference: ${get_response_from_llm.output}
+nodes:
+- name: get_response_from_llm
+  type: llm
+  source:
+    type: code
+    path: get_response_from_llm.jinja2
+  inputs:
+    colour: ${inputs.colour}
+    deployment_name: xstof-gpt4
+  connection: xstof-gpt4
+  api: chat
